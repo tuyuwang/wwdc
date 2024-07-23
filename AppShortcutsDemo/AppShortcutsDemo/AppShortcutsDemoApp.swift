@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppIntents
 
 @main
 struct AppShortcutsDemoApp: App {
@@ -13,5 +14,9 @@ struct AppShortcutsDemoApp: App {
         WindowGroup {
             ContentView()
         }
+    }
+    
+    init() {
+        AppDependencyManager.shared.add(dependency: SearchMananger.shared)
     }
 }

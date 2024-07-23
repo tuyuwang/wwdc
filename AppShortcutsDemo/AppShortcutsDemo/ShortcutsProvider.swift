@@ -73,6 +73,28 @@ struct ExampleParameterIntent: AppIntent {
     }
 }
 
+struct ExampleParameterEntityIntent: AppIntent {
+    static var title: LocalizedStringResource = "Get Session Infomation"
+    static var description: IntentDescription = IntentDescription("Session Description", categoryName: "Editing", searchKeywords: ["tuyw"])
+    
+    @Dependency
+    private var manager: SearchMananger
+    
+    @Parameter(title: "Session", description: "a session")
+    var session: SearchSession
+    
+    static var parameterSummary: some ParameterSummary {
+        Summary("Get information on \(\.$session)")
+    }
+    
+    func perform() async throws -> some IntentResult & ReturnsValue<SearchSession> & ProvidesDialog & ShowsSnippetView {
+        let dialog = IntentDialog(full: "The latest conditions reported for \(session.name).",
+                                  supporting: "Here's the latest information on trail conditions.")
+        
+        return .result(value: session, dialog: dialog, view: CustomDialogEntityView(entity: session))
+    }
+}
+
 struct CustomDialogView: View  {
     var body: some View {
         VStack {
@@ -85,39 +107,68 @@ struct CustomDialogView: View  {
     }
 }
 
+struct CustomDialogEntityView: View {
+    
+    var entity: SearchSession
+    
+    var body: some View {
+        VStack {
+            Image(systemName: entity.imageName)
+                .imageScale(.large)
+                .foregroundStyle(.tint)
+            Text(entity.name)
+        }
+        .padding()
+    }
+}
+
 //Parameters
 
 struct SearchSession: AppEntity {
     static var typeDisplayRepresentation: TypeDisplayRepresentation = TypeDisplayRepresentation(name: "Search Session pppp")
     
     let id: Int
-    let name: LocalizedStringResource
+    
+    @Property(title: "Session Name")
+    var name: String
+    
+    @Property(title: "Session Image")
+    var imageName: String
 
     static var typeDisplayName: LocalizedStringResource = "Search Session"
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: name)
+        DisplayRepresentation(title: "\(name)", image: DisplayRepresentation.Image(named: imageName))
     }
     static var defaultQuery = SearchSessionQuery()
+    
+    
+    init(id: Int, name: String, imageName: String) {
+        self.id = id
+        self.name = name
+        self.imageName = imageName
+    }
 }
 
 struct SearchSessionQuery: EntityQuery {
+    
+    @Dependency
+    var manager: SearchMananger
+    
     func entities(for identifiers: [Int]) async throws -> [SearchSession] {
-        identifiers.compactMap { SearchMananger.shared.session(for: $0 )}
+        identifiers.compactMap { manager.session(for: $0 )}
+    }
+    
+    func suggestedEntities() async throws -> [SearchSession] {
+        return manager.sessions
     }
 }
 
 
-class SearchMananger {
+@Observable class SearchMananger: @unchecked Sendable {
     static let shared = SearchMananger()
     
-    var sessions = [
-        SearchSession(id: 0, name: "session 1"),
-        SearchSession(id: 1, name: "session 2"),
-        SearchSession(id: 2, name: "session 3"),
-        SearchSession(id: 3, name: "session 4")
-
-    ]
+    let sessions: [SearchSession]
     
     func session(for identifier: Int) -> SearchSession? {
         
@@ -128,6 +179,16 @@ class SearchMananger {
         }
         
         return nil
+    }
+    
+    init() {
+        self.sessions = [
+            SearchSession(id: 0, name: "session 1", imageName: "photo.badge.plus"),
+            SearchSession(id: 1, name: "session 2", imageName: "photo.badge.plus"),
+            SearchSession(id: 2, name: "session 3", imageName: "photo.badge.plus"),
+            SearchSession(id: 3, name: "session 4", imageName: "photo.badge.plus"),
+
+        ]
     }
     
 }
